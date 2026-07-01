@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "phoenix-key"
+version = "1.0.0"
+description = "A Secure Key Chain Management Protocol with Recovery Capability"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Amirsam Azmoodeh", email = "amirsamazmoodeh@gmail.com"}
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Security :: Cryptography",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "cryptography>=41.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Amirsam-Azmoodeh/phoenix-key"
+Repository = "https://github.com/Amirsam-Azmoodeh/phoenix-key"
+Issues = "https://github.com/Amirsam-Azmoodeh/phoenix-key/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["phoenix_key*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
