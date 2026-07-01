@@ -1,3 +1,4 @@
+
 <!-- PhoenixKey - A Secure Key Chain Management Protocol with Recovery Capability -->
 
 <div align="center">
@@ -109,27 +110,33 @@ In the world of secure communications, **packet loss**, **out-of-order delivery*
 - Python 3.8 or higher
 - pip (Python package manager)
 
-### 🔧 Install from PyPI (Coming Soon)
+### 🔧 Install from PyPI
 
 ```bash
 $ pip install phoenix-key
+```
 
-🔧 Install from GitHub
-bash
+### 🔧 Install from GitHub
 
+```bash
 $ git clone https://github.com/Amirsam-Azmoodeh/phoenix-key.git
 $ cd phoenix-key
 $ pip install -e .
+```
 
-📦 Install dependencies manually
-bash
+### 📦 Install dependencies manually
 
+```bash
 $ pip install cryptography>=41.0.0
+```
 
-⚡ Quick Start
-Basic Usage
-python
+---
 
+## ⚡ Quick Start
+
+### Basic Usage
+
+```python
 from phoenix_key import PhoenixKey, Status
 
 # ============================================================================
@@ -170,10 +177,11 @@ result = pk.check_key(b"nonce_2", 2)  # 🔥 Cascade recovery
 
 # Results: keys 2, 3, 4, 5 are all created automatically!
 print(f"✅ Created {len(result)} keys: 2, 3, 4, 5")
+```
 
-Integration with Encryption
-python
+### Integration with Encryption
 
+```python
 from phoenix_key import PhoenixKey, Status
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
@@ -197,11 +205,15 @@ if result[0][0] == Status.SUCCESS:
     ciphertext = cipher.encrypt(nonce, b"Hello, World!", None)
     
     print(f"✅ Message encrypted with key: {key.hex()[:16]}...")
+```
 
-📚 How It Works
-🔄 Key Chain Protocol Flowchart
-text
+---
 
+## 📚 How It Works
+
+### 🔄 Key Chain Protocol Flowchart
+
+```
 ┌─────────────────────────────────────────────────────────────┐
 │                    INITIAL SETUP                            │
 │  Asymmetric handshake establishes master_key + nonce       │
@@ -259,18 +271,22 @@ text
 │                                                             │
 │   🔥 Cascade Effect: One key unlocks the entire chain!     │
 └─────────────────────────────────────────────────────────────┘
+```
 
-🎯 Response Codes
-Code	Value	Meaning
-Status.SUCCESS	1	Key created successfully
-Status.PENDING	2	Key waiting for previous key
-Status.REJECT	3	Rejection timer expired
-Status.INVALID	4	Invalid or duplicate key
-Key Derivation
+### 🎯 Response Codes
+
+| Code | Value | Meaning |
+|------|-------|---------|
+| `Status.SUCCESS` | 1 | Key created successfully |
+| `Status.PENDING` | 2 | Key waiting for previous key |
+| `Status.REJECT` | 3 | Rejection timer expired |
+| `Status.INVALID` | 4 | Invalid or duplicate key |
+
+### Key Derivation
 
 PhoenixKey uses HKDF (HMAC-based Key Derivation Function) with BLAKE2s:
-text
 
+```
 key_n = HKDF(
     algorithm=hashes.BLAKE2s(32),
     length=32,
@@ -278,10 +294,11 @@ key_n = HKDF(
     info=b'phoenix-key-derivation-v1' + nonce + counter.to_bytes(4, 'big'),
     key=key_{n-1}
 )
+```
 
-Cascade Recovery Example
-text
+### Cascade Recovery Example
 
+```
 Scenario: Keys arrive out of order
 
 Time 1: Receive key 5 → ⏳ PENDING (waiting for key 4)
@@ -293,80 +310,83 @@ Time 3: Receive key 2 → 🔥 CASCADE START
         - Create key 5 ✅ (was pending)
         
 Result: All keys 2, 3, 4, 5 created in a single operation!
+```
 
-🔒 Security Considerations
-✅ Forward Secrecy
+---
 
-Each key in the chain is derived from the previous key using HKDF. When a key is used and replaced, the previous key is immediately deleted from memory. This ensures that even if a key is compromised, it cannot be used to derive future or past keys.
-✅ Protection Against Replay Attacks
+## 🔒 Security Considerations
 
-    Counter validation: Each key is tied to a unique counter value
+### ✅ **Forward Secrecy**
+Each key in the chain is derived from the previous key using HKDF. When a key is used and replaced, the previous key is **immediately deleted** from memory. This ensures that even if a key is compromised, it cannot be used to derive future or past keys.
 
-    Nonce uniqueness: Keys derived with different nonces produce different results
+### ✅ **Protection Against Replay Attacks**
+- **Counter validation**: Each key is tied to a unique counter value
+- **Nonce uniqueness**: Keys derived with different nonces produce different results
+- **Duplicate detection**: The protocol rejects duplicate counter values
 
-    Duplicate detection: The protocol rejects duplicate counter values
+### ✅ **HKDF Best Practices**
+- Uses **BLAKE2s** for high performance and security
+- **Salt**: Fixed salt (`b'phoenix-salt-v1'`) for consistent derivations
+- **Info**: Includes prefix + nonce + counter for domain separation
 
-✅ HKDF Best Practices
+### ⚠️ **Known Limitations**
+| Limitation | Description | Mitigation |
+|------------|-------------|------------|
+| `max_counter` | Maximum gap between consecutive counters (default: 10) | Configure based on network conditions |
+| **TTL** | Fixed rejection timer may not suit all networks | Adjust TTL based on expected latency |
+| **State Loss** | If both parties lose state, sync is required | Implement periodic state sync or fallback keys |
+| **Memory Usage** | Pending keys are stored until recovered | TTL prevents indefinite storage |
 
-    Uses BLAKE2s for high performance and security
+### 🔐 **Recommendations for Production**
+1. **Always use AEAD** (e.g., AES-GCM, ChaCha20-Poly1305) with PhoenixKey
+2. **Establish initial keys** via asymmetric cryptography (e.g., X25519)
+3. **Monitor rejection timers** to detect network issues
+4. **Set `max_counter`** based on your network's maximum expected packet loss
+5. **Use unique nonces** for each message
 
-    Salt: Fixed salt (b'phoenix-salt-v1') for consistent derivations
+---
 
-    Info: Includes prefix + nonce + counter for domain separation
+## 📊 Performance
 
-⚠️ Known Limitations
-Limitation	Description	Mitigation
-max_counter	Maximum gap between consecutive counters (default: 10)	Configure based on network conditions
-TTL	Fixed rejection timer may not suit all networks	Adjust TTL based on expected latency
-State Loss	If both parties lose state, sync is required	Implement periodic state sync or fallback keys
-Memory Usage	Pending keys are stored until recovered	TTL prevents indefinite storage
-🔐 Recommendations for Production
+### Benchmark Results
+- **1000 keys derivation**: < 2 seconds
+- **Memory usage**: O(1) - only last key stored
+- **Cascade recovery**: O(n) where n is number of pending keys
 
-    Always use AEAD (e.g., AES-GCM, ChaCha20-Poly1305) with PhoenixKey
+### Comparison
+| Metric | PhoenixKey | Signal | Noise |
+|--------|------------|--------|-------|
+| **Key derivation** | HKDF-BLAKE2s | HKDF-SHA256 | HKDF-SHA256 |
+| **Out-of-order recovery** | ✅ Cascade | ✅ Ratchet | ⚠️ Limited |
+| **Memory footprint** | 🟢 Very low | 🔴 High | 🟡 Medium |
+| **Speed** | 🟢 Fast | 🟡 Medium | 🟢 Fast |
+| **Complexity** | 🟢 Simple | 🔴 Complex | 🟡 Medium |
 
-    Establish initial keys via asymmetric cryptography (e.g., X25519)
+---
 
-    Monitor rejection timers to detect network issues
+## 🧪 Testing
 
-    Set max_counter based on your network's maximum expected packet loss
+### 📌 Run all tests
 
-    Use unique nonces for each message
-
-📊 Performance
-Benchmark Results
-
-    1000 keys derivation: < 2 seconds
-
-    Memory usage: O(1) - only last key stored
-
-    Cascade recovery: O(n) where n is number of pending keys
-
-Comparison
-Metric	PhoenixKey	Signal	Noise
-Key derivation	HKDF-BLAKE2s	HKDF-SHA256	HKDF-SHA256
-Out-of-order recovery	✅ Cascade	✅ Ratchet	⚠️ Limited
-Memory footprint	🟢 Very low	🔴 High	🟡 Medium
-Speed	🟢 Fast	🟡 Medium	🟢 Fast
-Complexity	🟢 Simple	🔴 Complex	🟡 Medium
-🧪 Testing
-📌 Run all tests
-bash
-
+```bash
 $ pytest tests/ -v
+```
 
-📌 Run specific test file
-bash
+### 📌 Run specific test file
 
+```bash
 $ pytest tests/test_phoenix_key.py -v
+```
 
-📌 Test coverage
-bash
+### 📌 Test coverage
 
+```bash
 $ pytest --cov=phoenix_key tests/
+```
 
-📊 Test Results
-bash
+### 📊 Test Results
 
+```bash
 $ pytest tests/ -v
 
 ==================== test session starts ====================
@@ -376,15 +396,21 @@ tests/test_phoenix_key.py ....................... [100%]
 tests/test_integration.py ......... [100%]
 
 ==================== 56 passed in 18.7s ====================
+```
 
-✅ Test Coverage
-Test Category	Count	Status
-Unit Tests	47	✅ All Passing
-Integration Tests	9	✅ All Passing
-Total	56	✅ 100% Pass
-📁 Project Structure
-text
+### ✅ Test Coverage
 
+| Test Category | Count | Status |
+|---------------|-------|--------|
+| **Unit Tests** | 47 | ✅ All Passing |
+| **Integration Tests** | 9 | ✅ All Passing |
+| **Total** | 56 | ✅ 100% Pass |
+
+---
+
+## 📁 Project Structure
+
+```
 phoenix-key/
 │
 ├── phoenix_key/                    # Main package
@@ -402,29 +428,27 @@ phoenix-key/
 ├── CONTRIBUTING.md                 # Contributing guide
 ├── LICENSE                         # Apache 2.0
 └── .gitignore                      # Git ignore file
+```
 
-🤝 Contributing
+---
+
+## 🤝 Contributing
 
 We welcome contributions! Here's how you can help:
-🐛 Found a bug?
 
-    Check the issues page
+### 🐛 Found a bug?
+1. Check the [issues](https://github.com/Amirsam-Azmoodeh/phoenix-key/issues) page
+2. Create a new issue with detailed steps to reproduce
+3. Label it as `bug`
 
-    Create a new issue with detailed steps to reproduce
+### 💡 Have an idea?
+1. Create a feature request issue
+2. Discuss with the community
+3. Submit a pull request
 
-    Label it as bug
+### 📝 Development setup
 
-💡 Have an idea?
-
-    Create a feature request issue
-
-    Discuss with the community
-
-    Submit a pull request
-
-📝 Development setup
-bash
-
+```bash
 # Clone the repository
 $ git clone https://github.com/Amirsam-Azmoodeh/phoenix-key.git
 $ cd phoenix-key
@@ -442,47 +466,40 @@ $ pytest tests/ -v
 # Format code
 $ black phoenix_key/
 $ isort phoenix_key/
+```
 
-📋 Pull Request Guidelines
+### 📋 Pull Request Guidelines
 
-    ✅ Write clear commit messages
+- ✅ Write clear commit messages
+- ✅ Add tests for new features
+- ✅ Update documentation
+- ✅ Follow PEP 8 style guidelines
+- ✅ Ensure all tests pass
 
-    ✅ Add tests for new features
+---
 
-    ✅ Update documentation
+## 🗺️ Roadmap
 
-    ✅ Follow PEP 8 style guidelines
+### 🔜 **Short-term (v1.1)**
+- [ ] Async support for `check_key`
+- [ ] Customizable hash functions (SHA-256, SHA-3)
+- [ ] Integration examples with popular frameworks (FastAPI, Django)
 
-    ✅ Ensure all tests pass
+### 📅 **Medium-term (v1.2)**
+- [ ] Persistent state storage (SQLite, Redis)
+- [ ] Metrics and monitoring support
+- [ ] Command-line tool for testing
 
-🗺️ Roadmap
-🔜 Short-term (v1.1)
+### 🚀 **Long-term (v2.0)**
+- [ ] Multi-party key chain support
+- [ ] Post-quantum cryptography integration
+- [ ] Formal verification of the protocol
 
-    Async support for check_key
+---
 
-    Customizable hash functions (SHA-256, SHA-3)
+## 📄 License
 
-    Integration examples with popular frameworks (FastAPI, Django)
-
-📅 Medium-term (v1.2)
-
-    Persistent state storage (SQLite, Redis)
-
-    Metrics and monitoring support
-
-    Command-line tool for testing
-
-🚀 Long-term (v2.0)
-
-    Multi-party key chain support
-
-    Post-quantum cryptography integration
-
-    Formal verification of the protocol
-
-📄 License
-text
-
+```
 Copyright 2026 Amirsam Azmoodeh
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -496,23 +513,39 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+```
 
-📬 Contact
+---
+
+## 📬 Contact
+
 <div align="center">
 
-Amirsam Azmoodeh
+**Amirsam Azmoodeh**
 
-https://img.shields.io/badge/%F0%9F%93%A7%2520Email-amirsamazmoodeh%2540gmail.com-red?style=for-the-badge&logo=gmail&logoColor=white
-https://img.shields.io/badge/%F0%9F%94%97%2520LinkedIn-amirsam--azmoodeh-blue?style=for-the-badge&logo=linkedin&logoColor=white
-https://img.shields.io/badge/%F0%9F%90%99%2520GitHub-Amirsam--Azmoodeh-black?style=for-the-badge&logo=github&logoColor=white
+[![Email](https://img.shields.io/badge/📧%20Email-amirsamazmoodeh%40gmail.com-red?style=for-the-badge&logo=gmail&logoColor=white)](mailto:amirsamazmoodeh@gmail.com)
+[![LinkedIn](https://img.shields.io/badge/🔗%20LinkedIn-amirsam--azmoodeh-blue?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/amirsam-azmoodeh)
+[![GitHub](https://img.shields.io/badge/🐙%20GitHub-Amirsam--Azmoodeh-black?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Amirsam-Azmoodeh)
+
 </div>
-🌟 Star the Project
 
-If you found PhoenixKey useful, please consider starring the repository on GitHub! ⭐
+---
+
+## 🌟 Star the Project
+
+If you found PhoenixKey useful, please consider **starring** the repository on GitHub! ⭐
+
 <div align="center">
 
-https://img.shields.io/github/stars/Amirsam-Azmoodeh/phoenix-key?style=social
-</div><div align="center">
+[![GitHub Stars](https://img.shields.io/github/stars/Amirsam-Azmoodeh/phoenix-key?style=social)](https://github.com/Amirsam-Azmoodeh/phoenix-key)
 
-Built with ❤️ by Amirsam Azmoodeh
-</div> ```
+</div>
+
+---
+
+<div align="center">
+
+**Built with ❤️ by [Amirsam Azmoodeh](https://github.com/Amirsam-Azmoodeh)**
+
+</div>
+```
