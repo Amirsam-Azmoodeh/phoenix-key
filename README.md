@@ -1,4 +1,4 @@
-
+**Copyright © 2026 Amirsam Azmoodeh. All Rights Reserved.**
 <!-- PhoenixKey - A Secure Key Chain Management Protocol with Recovery Capability -->
 
 <div align="center">
